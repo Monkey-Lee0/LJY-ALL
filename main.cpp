@@ -75,11 +75,18 @@ int main()
 //     }
 //     freopen("1.in","r",stdin);
 //     freopen("1.out","w",stdout);
-    interpreter("begin");
-    std::string s;
-    while(getline(cin,s))
-        interpreter(s);
-    interpreter("end");
+	try
+	{
+		interpreter("begin");
+		std::string s;
+		while(getline(cin,s))
+			interpreter(s);
+		interpreter("end");
+	}
+    catch(...)
+	{
+		
+	}
 
     return 0;
 }
