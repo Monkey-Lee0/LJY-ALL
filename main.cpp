@@ -83,7 +83,7 @@ int main()
 			interpreter(s);
 		interpreter("end");
 	}
-    catch(...)
+    catch(invalid_expression &a)
 	{
 		
 	}
