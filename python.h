@@ -1709,9 +1709,18 @@ inline std::any interpreter_arithmetic(const std::string &s)
                 if(rs[x]!=-1)
                 {
                     if(raw_expression[rs[x]].type()==typeid(int)&&std::any_cast<int>(raw_expression[rs[x]])==41)
-                        result[x]=std::any_cast<Tuple>(result[x])+std::any_cast<Tuple>(result[rs[x]]);
+                    {
+                        auto tmp1=std::any_cast<Tuple>(result[x]),tmp2=std::any_cast<Tuple>(result[rs[x]]);
+                        for(const auto& t:tmp2.val)
+                            tmp1.val.push_back(t);
+                        result[x]=tmp1;
+                    }
                     else
-                        result[x]=std::any_cast<Tuple>(result[x])+Tuple(result[rs[x]]);
+                    {
+                        auto tmp0=std::any_cast<Tuple>(result[x]);
+                        tmp0.val.push_back(result[rs[x]]);
+                        result[x]=tmp0;
+                    }
                 }
             }
             else if(tmp==54)
