@@ -315,7 +315,8 @@ inline str cast_to_str(const std::any &aa)
         std::stringstream ss;
         std::streambuf* buffer=std::cout.rdbuf();
         std::cout.rdbuf(ss.rdbuf());
-        std::cout<<std::setprecision(12)<<std::any_cast<float2048<>>(a);
+		std::cout<<std::fixed<<std::setprecision(6)<<std::any_cast<float2048<>>(a);
+//        std::cout<<std::setprecision(12)<<std::any_cast<float2048<>>(a);
         const std::string res(ss.str());
         std::cout.rdbuf(buffer);
         return str(res);
