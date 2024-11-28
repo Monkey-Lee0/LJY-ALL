@@ -24,13 +24,6 @@ public:
     explicit operator bool()const{return !val.empty();}
 };
 
-inline Tuple operator+(const Tuple& a,const Tuple& b)
-{
-    Tuple c=a;
-    for(const auto& t:b.val)
-        c.val.push_back(t);
-    return c;
-}
 inline Tuple operator*(const Tuple& a,const int65536 &b)
 {
     Tuple c;
@@ -189,6 +182,14 @@ inline std::any interpreter_value(const std::any &var)
     {
         return *interpreter_variable(std::any_cast<std::string>(var),&variable);
     }
+}
+
+inline Tuple operator+(const Tuple& a,const Tuple& b)
+{
+    Tuple c=a;
+    for(const auto& t:b.val)
+        c.val.push_back(interpreter_value(t));
+    return c;
 }
 
 inline std::unordered_map<std::string, std::any> python_function::call(const std::vector<std::pair<std::string, std::any> > &par)
@@ -1428,6 +1429,18 @@ inline std::any interpreter_arithmetic(const std::string &s)
             else if(tmp==12)
             {
                 int pos=i-1;
+                if(pos>=0&&raw_expression[pos].type()==typeid(int)&&std::any_cast<int>(raw_expression[pos])==11)
+                {
+                    if(fa[pos]!=-1)
+                    {
+                        if(ls[fa[pos]]==pos)
+                            ls[fa[pos]]=i;
+                        else
+                            rs[fa[pos]]=i;
+                    }
+                    fa[i]=fa[pos];
+                    continue;
+                }
                 while(pos>=0&&(raw_expression[pos].type()!=typeid(int)||(std::any_cast<int>(raw_expression[pos])!=11&&std::any_cast<int>(raw_expression[pos])!=13&&std::any_cast<int>(raw_expression[pos])!=53)))
                     pos=fa[pos];
                 if(pos==-1)
@@ -1564,7 +1577,10 @@ inline std::any interpreter_arithmetic(const std::string &s)
         if(int x=stack.back(); ls[x]<0&&rs[x]<0)
         {
             stack.pop_back();
-            result[x]=raw_expression[x];
+            if(raw_expression[x].type()==typeid(int)&&std::any_cast<int>(raw_expression[x])==12)
+                result[x]=Tuple();
+            else
+                result[x]=raw_expression[x];
         }
         else if(ls[x]>=0&&fa[ls[x]]==x)
             stack.push_back(ls[x]),fa[ls[x]]=-1;
