@@ -73,8 +73,8 @@ int main()
     //     if(s=="end")
     //         break;
     // }
-    freopen("1.in","r",stdin);
-    freopen("1.out","w",stdout);
+    // freopen("1.in","r",stdin);
+    // freopen("1.out","w",stdout);
     interpreter("begin");
     std::string s;
     while(getline(cin,s))
