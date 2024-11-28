@@ -83,7 +83,7 @@ int main()
 			interpreter(s);
 		interpreter("end");
 	}
-    catch(invalid_expression &a)
+    catch(indentation_error &a)
 	{
 		
 	}
