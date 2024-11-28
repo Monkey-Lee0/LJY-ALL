@@ -781,9 +781,9 @@ inline std::any operator_div_(const std::any &aa,const std::any &bb)
         throw undefined_behavior(R"(unsupported operand type(s) for //: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
     if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
         throw undefined_behavior(R"(unsupported operand type(s) for //: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()!=typeid(float2048<>)&&b.type()==typeid(float2048<>))
-        return static_cast<int65536>(floor(cast_to_float(operator_div(a,b))));
-    return cast_to_int(floor(cast_to_float(operator_div(a,b))));
+    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+        return floor(cast_to_float(operator_div(a,b)));
+    return cast_to_int(a)/cast_to_int(b);
 }
 
 inline std::any operator_mod(const std::any &aa,const std::any &bb)

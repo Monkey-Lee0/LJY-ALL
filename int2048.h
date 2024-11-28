@@ -893,7 +893,11 @@ inline int65536 operator/ (const int65536 &a,const int65536 &b)
 		throw std::runtime_error("The divisor can't be zero!");
 	int dig_a=Count_Digit_(a),dig_b=Count_Digit_(b);
 	if(dig_a<dig_b)
-		return int65536(0);
+	{
+		if(!dig_a||a.sgn()==b.sgn())
+			return int65536(0);
+		return int65536(-1);
+	}
 	if(a.num.size()-b.num.size()<=32)
 	{
 		int65536 a0=a,d;
@@ -917,6 +921,10 @@ inline int65536 operator/ (const int65536 &a,const int65536 &b)
 			a0-=b0*l;
 			d.num[i]=l;
 		}
+		if(!b.symbol&&d*b<a)
+			d--;
+		if(b.symbol&&d*b>a)
+			d--;
 		d.simplify();
 		return d;
 	}
@@ -956,6 +964,10 @@ inline int65536 operator/ (const int65536 &a,const int65536 &b)
 	while(tb<=ta)
 		++res,ta-=tb;
 	res.symbol=sym;
+	if(!b.symbol&&res*b<a)
+		res--;
+	if(b.symbol&&res*b>a)
+		res--;
 	return res;
 }
 inline int65536 operator% (const int65536 &a,const int &b)
