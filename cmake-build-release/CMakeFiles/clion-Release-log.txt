@@ -1,4 +1,0 @@
-/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles" -S /mnt/f/Code/Project -B /mnt/f/Code/Project/cmake-build-release
--- Configuring done (0.1s)
--- Generating done (0.2s)
--- Build files have been written to: /mnt/f/Code/Project/cmake-build-release
