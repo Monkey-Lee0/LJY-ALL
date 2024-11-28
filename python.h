@@ -485,7 +485,7 @@ inline int get_priority(const std::any &a)
 inline bool higher_priority(const std::any &a,const std::any &b)
 {
     const int tmp_a=get_priority(a),tmp_b=get_priority(b);
-    if(tmp_a==1&&tmp_b==1)
+    if(tmp_a==2&&tmp_b==2)
         return false;
     return tmp_a>=tmp_b;
 }
@@ -493,7 +493,7 @@ inline bool higher_priority(const std::any &a,const std::any &b)
 inline bool higher_priority_(const std::any &a,const std::any &b)
 {
     const int tmp_a=get_priority(a),tmp_b=get_priority(b);
-    if(tmp_a==1&&tmp_b==1)
+    if(tmp_a==2&&tmp_b==2)
         return false;
     return tmp_a>tmp_b;
 }
@@ -1018,9 +1018,11 @@ inline std::any interpreter_arithmetic(const std::string &s)
     int state=-1,shift=0;
     char pre=0;
     std::vector<std::any> raw_expression,transformed_expression;
+    // std::cerr<<s<<std::endl;
     for(int i=0;i<static_cast<int>(s.size());i++)
     {
         char t=s[i];
+        // std::cerr<<i<<" + "<<t<<" "<<state<<" "<<las<<" "<<s.size()<<std::endl;
         if(state==-1)// blank mode
         {
             if(is_legal(t)||t=='.')
@@ -1074,7 +1076,8 @@ inline std::any interpreter_arithmetic(const std::string &s)
                 state=0,raw_expression.push_back(interpreter_object(las)),las=t;
             else if(is_symbol(t))
             {
-                if(t=='='||(las=="*"&&t=='*')||(las=="/"&&t=='/'))
+                if((t=='='&&(las=="="||las=="<"||las==">"||las=="!"||las=="+"||las=="-"||las=="*"||las=="/"||las=="//"||las=="%"||las=="**"))
+                    ||(las=="*"&&t=='*')||(las=="/"&&t=='/'))
                     state=1,las+=t;
                 else
                     state=1,raw_expression.push_back(interpreter_object(las)),las=t;
@@ -1366,7 +1369,7 @@ inline std::any interpreter_arithmetic(const std::string &s)
                 if(i+1==raw_expression.size()||!i||fa[i]!=-1)
                     throw invalid_expression("invalid syntax");
                 int pos=i-1;
-                while(fa[pos]!=-1&&higher_priority(raw_expression[fa[pos]],raw_expression[i]))
+                while(fa[pos]!=-1&&higher_priority_(raw_expression[fa[pos]],raw_expression[i]))
                     pos=fa[pos];
                 if(fa[pos]!=-1)
                 {
