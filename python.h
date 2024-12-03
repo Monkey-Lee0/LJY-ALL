@@ -1880,7 +1880,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
         if(running_code.back().pre_state==6&&(CNT>0||x>=running_code.back().indentation_count))
         {
             if(CNT>0)
-                now_func.code.back()+=s;
+                now_func.code.back()+=" "+s;
             else
                 now_func.code.push_back(s.substr(running_code.back().indentation_count));
             translator(s);
@@ -1920,7 +1920,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
             {
                 if(i+1==CODE_BLOCK.size())
                     throw invalid_expression(R"(expected ':')");
-                s+=CODE_BLOCK[++i];
+                s+=" "+CODE_BLOCK[++i];
                 pos=search_first_target(s,':');
             }
             auto following=remove_blank(s.substr(pos+1));
@@ -1961,7 +1961,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
             {
                 if(i+1==CODE_BLOCK.size())
                     throw invalid_expression(R"(expected ':')");
-                s+=CODE_BLOCK[++i];
+                s+=" "+CODE_BLOCK[++i];
                 pos=search_first_target(s,':');
             }
             auto following=remove_blank(s.substr(pos+1));
@@ -2043,7 +2043,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
             {
                 if(i+1==CODE_BLOCK.size())
                     throw invalid_expression(R"(expected ':')");
-                s+=CODE_BLOCK[++i];
+                s+=" "+CODE_BLOCK[++i];
                 pos=search_first_target(s,':');
             }
             auto following=remove_blank(s.substr(pos+1));
@@ -2080,8 +2080,13 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
         else if(s.size()>=x+3&&s.substr(x,3)=="def"&&(s.size()==x+3||s[x+3]==' '||s[x+3]=='\t'))
         {
             int pos=search_first_target(s,':');
-            if(pos==-1)
-                throw invalid_expression(R"(expected ':')");
+            while(pos==-1)
+            {
+                if(i+1==CODE_BLOCK.size())
+                    throw invalid_expression(R"(expected ':')");
+                s+=" "+CODE_BLOCK[++i];
+                pos=search_first_target(s,':');
+            }
             auto following=remove_blank(s.substr(pos+1));
             int nxt;
             if(!following.empty())
