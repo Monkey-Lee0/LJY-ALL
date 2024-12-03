@@ -176,6 +176,8 @@ inline std::any interpreter_value(const std::any &var)
         return var;
     try
     {
+        if(!is_variable(std::any_cast<std::string>(var)))
+            throw invalid_expression("unknown object "+std::any_cast<std::string>(var));
         return *interpreter_variable(std::any_cast<std::string>(var),Dict);
     }
     catch(...)
@@ -673,12 +675,12 @@ inline std::any interpreter_object(const std::string &s)
         return tmp;
     if(s.empty()||!is_legal_(s.front())||s=="True"||s=="False"||s=="None")
         return interpreter_literal(s);
-    if(is_variable(s))
-        return s;
-    throw invalid_expression("unknown object "+s);
+    return s;
 }
 
-inline std::any operator_add(const std::any &aa,const std::any &bb)
+namespace operator_
+{
+    inline std::any operator_add(const std::any &aa,const std::any &bb)
 {
     const std::any a=interpreter_value(aa),b=interpreter_value(bb);
     if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
@@ -700,233 +702,251 @@ inline std::any operator_add(const std::any &aa,const std::any &bb)
     return cast_to_int(a)+cast_to_int(b);
 }
 
-inline std::any operator_plus(const std::any &aa)
-{
-    const std::any a=interpreter_value(aa);
-    if(a.type()==typeid(str)||a.type()==typeid(Tuple)||a.type()==typeid(python_function)||a.type()==typeid(long long))
-        throw undefined_behavior(R"(bad operand type for unary +: ')"+type_name(a)+R"(')");
-    if(a.type()==typeid(float2048<>))
-        return cast_to_float(a);
-    return cast_to_int(a);
-}
-
-inline std::any operator_sub(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for -: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-        throw undefined_behavior(R"(unsupported operand type(s) for -: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)-cast_to_float(b);
-    return cast_to_int(a)-cast_to_int(b);
-}
-
-inline std::any operator_minus(const std::any &aa)
-{
-    const std::any a=interpreter_value(aa);
-    if(a.type()==typeid(str)||a.type()==typeid(Tuple)||a.type()==typeid(python_function)||a.type()==typeid(long long))
-        throw undefined_behavior(R"(bad operand type for unary -: ')"+type_name(a)+R"(')");
-    if(a.type()==typeid(float2048<>))
-        return -cast_to_float(a);
-    return -cast_to_int(a);
-}
-
-inline std::any operator_mul(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str))
+    inline std::any operator_plus(const std::any &aa)
     {
-        if(b.type()!=typeid(int65536)&&b.type()!=typeid(bool))
+        const std::any a=interpreter_value(aa);
+        if(a.type()==typeid(str)||a.type()==typeid(Tuple)||a.type()==typeid(python_function)||a.type()==typeid(long long))
+            throw undefined_behavior(R"(bad operand type for unary +: ')"+type_name(a)+R"(')");
+        if(a.type()==typeid(float2048<>))
+            return cast_to_float(a);
+        return cast_to_int(a);
+    }
+
+    inline std::any operator_sub(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for -: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+            throw undefined_behavior(R"(unsupported operand type(s) for -: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)-cast_to_float(b);
+        return cast_to_int(a)-cast_to_int(b);
+    }
+
+    inline std::any operator_minus(const std::any &aa)
+    {
+        const std::any a=interpreter_value(aa);
+        if(a.type()==typeid(str)||a.type()==typeid(Tuple)||a.type()==typeid(python_function)||a.type()==typeid(long long))
+            throw undefined_behavior(R"(bad operand type for unary -: ')"+type_name(a)+R"(')");
+        if(a.type()==typeid(float2048<>))
+            return -cast_to_float(a);
+        return -cast_to_int(a);
+    }
+
+    inline std::any operator_mul(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
             throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return any_cast<str>(a)*cast_to_int(b);
-    }
-    if(b.type()==typeid(str))
-    {
-        if(a.type()!=typeid(int65536)&&a.type()!=typeid(bool))
-            throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return any_cast<str>(b)*cast_to_int(a);
-    }
-    if(a.type()==typeid(Tuple))
-    {
-        if(b.type()!=typeid(int65536)&&b.type()!=typeid(bool))
-            throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return any_cast<Tuple>(a)*cast_to_int(b);
-    }
-    if(b.type()==typeid(Tuple))
-    {
-        if(a.type()!=typeid(int65536)&&a.type()!=typeid(bool))
-            throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return any_cast<Tuple>(b)*cast_to_int(a);
-    }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)*cast_to_float(b);
-    return cast_to_int(a)*cast_to_int(b);
-}
-
-inline std::any operator_div(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for /: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-        throw undefined_behavior(R"(unsupported operand type(s) for /: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    return cast_to_float(a)/cast_to_float(b);
-}
-
-inline std::any operator_div_(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for //: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-        throw undefined_behavior(R"(unsupported operand type(s) for //: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return floor(cast_to_float(operator_div(a,b)));
-    return cast_to_int(a)/cast_to_int(b);
-}
-
-inline std::any operator_mod(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for %: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-        throw undefined_behavior(R"(unsupported operand type(s) for %: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)%cast_to_float(b);
-    return cast_to_int(a)%cast_to_int(b);
-}
-
-inline std::any operator_pow(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for ** or pow(): ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-        throw undefined_behavior(R"(unsupported operand type(s) for ** or pow(): ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>)||cast_to_float(b)<float2048(0))
-        return cast_to_float(a)^cast_to_float(b);
-    return cast_to_int(a)^cast_to_int(b);
-}
-
-inline std::any operator_less(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(std::string))
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-    {
-        if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
-            throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<Tuple>(a)<std::any_cast<Tuple>(b);
-    }
-    if(a.type()==typeid(str)||b.type()==typeid(str))
-    {
-        if(a.type()!=typeid(str)||b.type()!=typeid(str))
-            throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<str>(a)<std::any_cast<str>(b);
-    }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)<cast_to_float(b);
-    return cast_to_int(a)<cast_to_int(b);
-}
-
-inline std::any operator_less_eq(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for <=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-    {
-        if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
-            throw undefined_behavior(R"(unsupported operand type(s) for <=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<Tuple>(a)<=std::any_cast<Tuple>(b);
-    }
-    if(a.type()==typeid(str)||b.type()==typeid(str))
-    {
-        if(a.type()!=typeid(str)||b.type()!=typeid(str))
-            throw undefined_behavior(R"(unsupported operand type(s) for <=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<str>(a)<=std::any_cast<str>(b);
-    }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)<=cast_to_float(b);
-    return cast_to_int(a)<=cast_to_int(b);
-}
-
-inline std::any operator_greater(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for >: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-    {
-        if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
-            throw undefined_behavior(R"(unsupported operand type(s) for >: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<Tuple>(a)>std::any_cast<Tuple>(b);
-    }
-    if(a.type()==typeid(str)||b.type()==typeid(str))
-    {
-        if(a.type()!=typeid(str)||b.type()!=typeid(str))
-            throw undefined_behavior(R"(unsupported operand type(s) for >: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<str>(a)>std::any_cast<str>(b);
-    }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)>cast_to_float(b);
-    return cast_to_int(a)>cast_to_int(b);
-}
-
-inline std::any operator_greater_eq(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for >=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-    {
-        if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
-            throw undefined_behavior(R"(unsupported operand type(s) for >=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<Tuple>(a)>=std::any_cast<Tuple>(b);
-    }
-    if(a.type()==typeid(str)||b.type()==typeid(str))
-    {
-        if(a.type()!=typeid(str)||b.type()!=typeid(str))
-            throw undefined_behavior(R"(unsupported operand type(s) for >=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<str>(a)>=std::any_cast<str>(b);
-    }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)>=cast_to_float(b);
-    return cast_to_int(a)>=cast_to_int(b);
-}
-
-inline std::any operator_equal(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if((a.type()!=typeid(int65536)&&a.type()!=typeid(float2048<>)&&a.type()!=typeid(bool))||
-        (b.type()!=typeid(int65536)&&b.type()!=typeid(float2048<>)&&b.type()!=typeid(bool)))
-    {
-        if(a.type()!=b.type())
-            return false;
-        if(a.type()==typeid(python_function))
-            return std::any_cast<python_function>(a)==std::any_cast<python_function>(b);
-        if(a.type()==typeid(Tuple))
-            return std::any_cast<Tuple>(a)==std::any_cast<Tuple>(b);
         if(a.type()==typeid(str))
-            return std::any_cast<str>(a)==std::any_cast<str>(b);
-        if(a.type()==typeid(long long))
-            return true;
+        {
+            if(b.type()!=typeid(int65536)&&b.type()!=typeid(bool))
+                throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return any_cast<str>(a)*cast_to_int(b);
+        }
+        if(b.type()==typeid(str))
+        {
+            if(a.type()!=typeid(int65536)&&a.type()!=typeid(bool))
+                throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return any_cast<str>(b)*cast_to_int(a);
+        }
+        if(a.type()==typeid(Tuple))
+        {
+            if(b.type()!=typeid(int65536)&&b.type()!=typeid(bool))
+                throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return any_cast<Tuple>(a)*cast_to_int(b);
+        }
+        if(b.type()==typeid(Tuple))
+        {
+            if(a.type()!=typeid(int65536)&&a.type()!=typeid(bool))
+                throw undefined_behavior(R"(unsupported operand type(s) for *: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return any_cast<Tuple>(b)*cast_to_int(a);
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)*cast_to_float(b);
+        return cast_to_int(a)*cast_to_int(b);
     }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)==cast_to_float(b);
-    return cast_to_int(a)==cast_to_int(b);
-}
 
-inline std::any operator_not_equal(const std::any &a,const std::any &b)
-{
-    return !std::any_cast<bool>(operator_equal(a,b));
+    inline std::any operator_div(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for /: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+            throw undefined_behavior(R"(unsupported operand type(s) for /: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        return cast_to_float(a)/cast_to_float(b);
+    }
+
+    inline std::any operator_div_(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for //: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+            throw undefined_behavior(R"(unsupported operand type(s) for //: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return floor(cast_to_float(operator_div(a,b)));
+        return cast_to_int(a)/cast_to_int(b);
+    }
+
+    inline std::any operator_mod(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for %: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+            throw undefined_behavior(R"(unsupported operand type(s) for %: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)%cast_to_float(b);
+        return cast_to_int(a)%cast_to_int(b);
+    }
+
+    inline std::any operator_pow(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for ** or pow(): ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(str)||b.type()==typeid(str)||a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+            throw undefined_behavior(R"(unsupported operand type(s) for ** or pow(): ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>)||cast_to_float(b)<float2048(0))
+            return cast_to_float(a)^cast_to_float(b);
+        return cast_to_int(a)^cast_to_int(b);
+    }
+
+    inline std::any operator_less(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(std::string))
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+        {
+            if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
+                throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<Tuple>(a)<std::any_cast<Tuple>(b);
+        }
+        if(a.type()==typeid(str)||b.type()==typeid(str))
+        {
+            if(a.type()!=typeid(str)||b.type()!=typeid(str))
+                throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<str>(a)<std::any_cast<str>(b);
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)<cast_to_float(b);
+        return cast_to_int(a)<cast_to_int(b);
+    }
+
+    inline std::any operator_less_eq(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for <=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+        {
+            if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
+                throw undefined_behavior(R"(unsupported operand type(s) for <=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<Tuple>(a)<=std::any_cast<Tuple>(b);
+        }
+        if(a.type()==typeid(str)||b.type()==typeid(str))
+        {
+            if(a.type()!=typeid(str)||b.type()!=typeid(str))
+                throw undefined_behavior(R"(unsupported operand type(s) for <=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<str>(a)<=std::any_cast<str>(b);
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)<=cast_to_float(b);
+        return cast_to_int(a)<=cast_to_int(b);
+    }
+
+    inline std::any operator_greater(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for >: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+        {
+            if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
+                throw undefined_behavior(R"(unsupported operand type(s) for >: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<Tuple>(a)>std::any_cast<Tuple>(b);
+        }
+        if(a.type()==typeid(str)||b.type()==typeid(str))
+        {
+            if(a.type()!=typeid(str)||b.type()!=typeid(str))
+                throw undefined_behavior(R"(unsupported operand type(s) for >: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<str>(a)>std::any_cast<str>(b);
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)>cast_to_float(b);
+        return cast_to_int(a)>cast_to_int(b);
+    }
+
+    inline std::any operator_greater_eq(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
+            throw undefined_behavior(R"(unsupported operand type(s) for >=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+        if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+        {
+            if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
+                throw undefined_behavior(R"(unsupported operand type(s) for >=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<Tuple>(a)>=std::any_cast<Tuple>(b);
+        }
+        if(a.type()==typeid(str)||b.type()==typeid(str))
+        {
+            if(a.type()!=typeid(str)||b.type()!=typeid(str))
+                throw undefined_behavior(R"(unsupported operand type(s) for >=: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<str>(a)>=std::any_cast<str>(b);
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)>=cast_to_float(b);
+        return cast_to_int(a)>=cast_to_int(b);
+    }
+
+    inline std::any operator_equal(const std::any &aa,const std::any &bb)
+    {
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if((a.type()!=typeid(int65536)&&a.type()!=typeid(float2048<>)&&a.type()!=typeid(bool))||
+            (b.type()!=typeid(int65536)&&b.type()!=typeid(float2048<>)&&b.type()!=typeid(bool)))
+        {
+            if(a.type()!=b.type())
+                return false;
+            if(a.type()==typeid(python_function))
+                return std::any_cast<python_function>(a)==std::any_cast<python_function>(b);
+            if(a.type()==typeid(Tuple))
+                return std::any_cast<Tuple>(a)==std::any_cast<Tuple>(b);
+            if(a.type()==typeid(str))
+                return std::any_cast<str>(a)==std::any_cast<str>(b);
+            if(a.type()==typeid(long long))
+                return true;
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)==cast_to_float(b);
+        return cast_to_int(a)==cast_to_int(b);
+    }
+
+    inline std::any operator_not_equal(const std::any &a,const std::any &b)
+    {
+        return !std::any_cast<bool>(operator_equal(a,b));
+    }
+
+    inline std::any operator_or(const std::any &a,const std::any &b)
+    {
+        if(cast_to_bool(a))
+            return a;
+        return b;
+    }
+
+    inline std::any operator_and(const std::any &a,const std::any &b)
+    {
+        if(!cast_to_bool(a))
+            return a;
+        return b;
+    }
+
+    inline std::any operator_not(const std::any &a){return !cast_to_bool(a);}
 }
+using namespace operator_;
 
 inline std::strong_ordering operator<=>(const Tuple &a, const Tuple &b)
 {
@@ -953,22 +973,6 @@ inline bool operator==(const Tuple &a,const Tuple &b)
             return false;
     return true;
 }
-
-inline std::any operator_or(const std::any &a,const std::any &b)
-{
-    if(cast_to_bool(a))
-        return a;
-    return b;
-}
-
-inline std::any operator_and(const std::any &a,const std::any &b)
-{
-    if(!cast_to_bool(a))
-        return a;
-    return b;
-}
-
-inline std::any operator_not(const std::any &a){return !cast_to_bool(a);}
 
 inline std::any operator_index(const std::any &aa,const std::any &bb)
 {
@@ -1011,19 +1015,19 @@ inline std::any operator_assignment(const std::any &a,const std::any &bb)
     return wrap(b);
 }
 
-inline std::any interpreter_block(const std::vector<std::string>&,int,std::unordered_map<std::string,std::any>*);
+inline std::any interpreter_block(std::vector<std::string>,int,std::unordered_map<std::string,std::any>*);
 
-inline std::any interpreter_arithmetic(const std::string &s)
+inline int CNT=0;
+inline std::vector<std::any> raw_expression_;
+
+inline void translator(const std::string &s)
 {
     std::string las,aux;
     int state=-1,shift=0;
     char pre=0;
-    std::vector<std::any> raw_expression,transformed_expression;
-    // std::cerr<<s<<std::endl;
     for(int i=0;i<static_cast<int>(s.size());i++)
     {
         char t=s[i];
-        // std::cerr<<i<<" + "<<t<<" "<<state<<" "<<las<<" "<<s.size()<<std::endl;
         if(state==-1)// blank mode
         {
             if(is_legal(t)||t=='.')
@@ -1039,14 +1043,14 @@ inline std::any interpreter_arithmetic(const std::string &s)
             else if(t=='#')
                 break;
             else
-                throw invalid_expression("illegal symbol");
+                las.clear(),state=-1,raw_expression_.push_back(0ll);
         }
         else if(state==0)// non-string literal mode
         {
             if(is_legal(t)||t=='.')
                 state=0,las+=t;
             else if(is_symbol(t))
-                state=1,raw_expression.push_back(interpreter_object(las)),las=t;
+                state=1,raw_expression_.push_back(interpreter_object(las)),las=t;
             else if(t=='\''||t=='\"')
             {
                 if(las=="f")
@@ -1061,42 +1065,48 @@ inline std::any interpreter_arithmetic(const std::string &s)
                     throw invalid_expression("invalid expression");
             }
             else if(is_blank(t))
-                state=-1,raw_expression.push_back(interpreter_object(las)),las.clear();
+                state=-1,raw_expression_.push_back(interpreter_object(las)),las.clear();
             else if(t=='#')
             {
                 state=-1;
-                raw_expression.push_back(interpreter_object(las));
+                raw_expression_.push_back(interpreter_object(las));
                 break;
             }
             else
-                throw invalid_expression("illegal symbol");
+                las.clear(),state=-1,raw_expression_.push_back(0ll);
         }
         else if(state==1)// operator mode
         {
+            if(las=="("||las=="["||las=="{")
+                CNT++;
+            if(las==")"||las=="]"||las=="}")
+                CNT--;
+            if(CNT<0)
+                throw invalid_expression("unmatched \'"+las+"\'");
             if(is_legal(t)||t=='.')
-                state=0,raw_expression.push_back(interpreter_object(las)),las=t;
+                state=0,raw_expression_.push_back(interpreter_object(las)),las=t;
             else if(is_symbol(t))
             {
                 if((t=='='&&(las=="="||las=="<"||las==">"||las=="!"||las=="+"||las=="-"||las=="*"||las=="/"||las=="//"||las=="%"||las=="**"))
                     ||(las=="*"&&t=='*')||(las=="/"&&t=='/'))
                     state=1,las+=t;
                 else
-                    state=1,raw_expression.push_back(interpreter_object(las)),las=t;
+                    state=1,raw_expression_.push_back(interpreter_object(las)),las=t;
             }
             else if(t=='\"')
-                state=2,raw_expression.push_back(interpreter_object(las)),las=t;
+                state=2,raw_expression_.push_back(interpreter_object(las)),las=t;
             else if(t=='\'')
-                state=3,raw_expression.push_back(interpreter_object(las)),las=t;
+                state=3,raw_expression_.push_back(interpreter_object(las)),las=t;
             else if(is_blank(t))
-                state=-1,raw_expression.push_back(interpreter_object(las)),las.clear();
+                state=-1,raw_expression_.push_back(interpreter_object(las)),las.clear();
             else if(t=='#')
             {
                 state=-1;
-                raw_expression.push_back(interpreter_object(las));
+                raw_expression_.push_back(interpreter_object(las));
                 break;
             }
             else
-                throw invalid_expression("illegal symbol");
+                las.clear(),state=-1,raw_expression_.push_back(0ll);
         }
         else if(state==2)// "-string mode
         {
@@ -1150,7 +1160,7 @@ inline std::any interpreter_arithmetic(const std::string &s)
                     throw invalid_expression("invalid expression");
             }
             else if(is_symbol(t))
-                state=1,raw_expression.push_back(interpreter_object(las)),las=t;
+                state=1,raw_expression_.push_back(interpreter_object(las)),las=t;
             else if(t=='\"')
                 state=2,las.pop_back();
             else if(t=='\'')
@@ -1160,11 +1170,11 @@ inline std::any interpreter_arithmetic(const std::string &s)
             else if(t=='#')
             {
                 state=-1;
-                raw_expression.push_back(interpreter_object(las));
+                raw_expression_.push_back(interpreter_object(las));
                 break;
             }
             else
-                throw invalid_expression("illegal symbol");
+                las.clear(),state=-1,raw_expression_.push_back(0ll);
         }
         else if(state==5)// f"-string mode
         {
@@ -1173,7 +1183,17 @@ inline std::any interpreter_arithmetic(const std::string &s)
                 if(i+1!=s.size()&&s[i+1]=='{')
                     i++,las+='{';
                 else
+                {
+                    las+="\"";
+                    raw_expression_.push_back(interpreter_object(las));
+                    las.clear();
+                    raw_expression_.push_back(interpreter_object("+"));
+                    python_function tmp("a");tmp.id=-4;
+                    raw_expression_.emplace_back(tmp);
+                    raw_expression_.push_back(interpreter_object("("));
+                    raw_expression_.push_back(interpreter_object("("));
                     state=7;
+                }
             }
             else if(t=='}')
             {
@@ -1204,7 +1224,17 @@ inline std::any interpreter_arithmetic(const std::string &s)
                 if(i+1!=s.size()&&s[i+1]=='{')
                     i++,las+='{';
                 else
+                {
+                    las+="\'";
+                    raw_expression_.push_back(interpreter_object(las));
+                    las.clear();
+                    raw_expression_.push_back(interpreter_object("+"));
+                    python_function tmp("a");tmp.id=-4;
+                    raw_expression_.emplace_back(tmp);
+                    raw_expression_.push_back(interpreter_object("("));
+                    raw_expression_.push_back(interpreter_object("("));
                     state=8;
+                }
             }
             else if(t=='}')
             {
@@ -1242,8 +1272,12 @@ inline std::any interpreter_arithmetic(const std::string &s)
             }
             else if(t=='}')
             {
-                las+=std::string(cast_to_str(interpreter_arithmetic(aux)));
+                translator(aux);
                 aux.clear();
+                raw_expression_.push_back(interpreter_object(")"));
+                raw_expression_.push_back(interpreter_object(")"));
+                raw_expression_.push_back(interpreter_object("+"));
+                las="\"";
                 state=5;
             }
             else
@@ -1267,8 +1301,12 @@ inline std::any interpreter_arithmetic(const std::string &s)
             }
             else if(t=='}')
             {
-                las+=std::string(cast_to_str(interpreter_arithmetic(aux)));
+                translator(aux);
                 aux.clear();
+                raw_expression_.push_back(interpreter_object(")"));
+                raw_expression_.push_back(interpreter_object(")"));
+                raw_expression_.push_back(interpreter_object("+"));
+                las="\'";
                 state=6;
             }
             else
@@ -1282,9 +1320,27 @@ inline std::any interpreter_arithmetic(const std::string &s)
     if(state==2||state==3)
         throw invalid_expression("unterminated string literal");
     if(state!=-1)
-        raw_expression.push_back(interpreter_object(las));
+    {
+        if(las=="("||las=="["||las=="{")
+            CNT++;
+        if(las==")"||las=="]"||las=="}")
+            CNT--;
+        if(CNT<0)
+            throw invalid_expression("unmatched \'"+las+"\'");
+        raw_expression_.push_back(interpreter_object(las));
+    }
+}
+
+inline std::any interpreter_arithmetic(const std::string &s,bool mode=false)
+{
+    translator(s);
+    if(raw_expression_.empty())
+        return 0ll;
+    if(CNT>0&&mode)
+        return 0ll;
+    std::vector<std::any> raw_expression=raw_expression_;
+    raw_expression_.clear();
     std::vector<int> ls(raw_expression.size(),-1),rs(raw_expression.size(),-1),fa(raw_expression.size(),-1);
-    int chk=0;
     // for(const auto& t:raw_expression)
     //     print_to_screen(t),puts("");
     int now_size=static_cast<int>(raw_expression.size());
@@ -1526,6 +1582,8 @@ inline std::any interpreter_arithmetic(const std::string &s)
         }
         else if(i&&fa[i]==-1)
             throw invalid_expression("invalid syntax");
+        else if(typeid(raw_expression_[i])==typeid(long long))
+            throw invalid_expression("illegal symbol");
     }
     int now=static_cast<int>(raw_expression.size())-1;
     while(now!=-1)
@@ -1546,7 +1604,7 @@ inline std::any interpreter_arithmetic(const std::string &s)
             else if(tmp==12)
                 cnt--;
         }
-    for(auto & t:raw_expression)
+    for(int chk=0; auto & t:raw_expression)
         if(t.type()==typeid(int))
         {
             const int tmp=std::any_cast<int>(t);
@@ -1645,7 +1703,7 @@ inline std::any interpreter_arithmetic(const std::string &s)
                     auto func=std::any_cast<python_function>(val);
                     if(func.id<0)
                     {
-                        if(func.id>6)
+                        if(func.id>-6)
                         {
                             if(upd.empty())
                                 throw invalid_expression("missing argument");
@@ -1666,12 +1724,11 @@ inline std::any interpreter_arithmetic(const std::string &s)
                         }
                         else
                         {
-                            for(auto tmp_:upd)
+                            for(const auto& tmp_:upd)
                                 print_to_screen(tmp_.second,true),std::cout<<" ";
                             result[x]=0ll;
                             std::cout<<std::endl;
                         }
-
                     }
                     else
                     {
@@ -1806,49 +1863,39 @@ inline python_function::python_function(const std::string &ss):id(COUNT_OF_FUNCT
 
 }
 
-inline void interpreter_single(const std::string& s,const int state)
-{
-    int pos=static_cast<int>(s.size());
-    for(int i=0;i<static_cast<int>(s.size());i++)
-        if(s[i]!=' '&&s[i]!='\t')
-        {
-            pos=i;
-            break;
-        }
-    if(s[pos]=='#'||pos==s.size())
-        return ;
-    if(const std::any a=interpreter_value(interpreter_arithmetic(s)); a.type()!=typeid(wrap)&&a.type()!=typeid(long long)&&!state)
-        print_to_screen(a),std::cout<<std::endl;
-}
-
-inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,const int state,std::unordered_map<std::string,std::any> *dict)
+inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int state,std::unordered_map<std::string,std::any> *dict)
 {
     Dict=dict;
     std::vector<running_information> running_code;
     running_code.emplace_back(0,0,-1);
     int now=0;
     python_function now_func;
-    std::string name,tmp_code;
+    std::string name;
     for(int i=0;i<=static_cast<int>(CODE_BLOCK.size());i++)
     {
         std::string s=(i==static_cast<int>(CODE_BLOCK.size())?"":CODE_BLOCK[i]);
-        if(!tmp_code.empty())
-        {
-            s=tmp_code;
-            tmp_code.clear();
-            i--;
-        }
         if(i!=static_cast<int>(CODE_BLOCK.size())&&s.empty())
             continue;
         const int x=get_indentation(s);
-        if(running_code.back().pre_state==6&&x>=running_code.back().indentation_count)
+        if(running_code.back().pre_state==6&&(CNT>0||x>=running_code.back().indentation_count))
         {
-            now_func.code.push_back(s.substr(running_code.back().indentation_count));
+            if(CNT>0)
+                now_func.code.back()+=s;
+            else
+                now_func.code.push_back(s.substr(running_code.back().indentation_count));
+            translator(s);
+            if(CNT==0)
+                raw_expression_.clear();
             (*dict)[name]=now_func;
             continue;
         }
-        if(x>now)
+        if(x>now||CNT>0)
+        {
+            translator(s);
+            if(CNT==0)
+                raw_expression_.clear();
             continue;
+        }
         int op=0;
         while(!running_code.empty()&&running_code.back().indentation_count!=x)
         {
@@ -1869,19 +1916,26 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
         if(s.size()>=x+2&&s.substr(x,2)=="if"&&(s.size()==x+2||s[x+2]==' '||s[x+2]=='\t'))
         {
             int pos=search_first_target(s,':');
-            if(pos==-1)
-                throw invalid_expression(R"(expected ':')");
+            while(pos==-1)
+            {
+                if(i+1==CODE_BLOCK.size())
+                    throw invalid_expression(R"(expected ':')");
+                s+=CODE_BLOCK[++i];
+                pos=search_first_target(s,':');
+            }
             auto following=remove_blank(s.substr(pos+1));
             int nxt;
             if(!following.empty())
             {
+                for(int ii=1;ii+pos<s.size();ii++)
+                    CODE_BLOCK[i].pop_back();
                 if(i+1!=CODE_BLOCK.size()&&get_indentation(CODE_BLOCK[i+1])>x)
                     throw indentation_error("unexpected indent");
                 std::string a;
                 for(int i_=0;i_<=x;i_++)
                     a+=' ';
                 nxt=x+1;
-                tmp_code=a+following;
+                CODE_BLOCK.insert(CODE_BLOCK.begin()+i+1,a+following);
             }
             else
             {
@@ -1903,19 +1957,26 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
         else if(s.size()>=x+4&&s.substr(x,4)=="elif"&&(s.size()==x+4||s[x+4]==' '||s[x+4]=='\t'))
         {
             int pos=search_first_target(s,':');
-            if(pos==-1)
-                throw invalid_expression(R"(expected ':')");
+            while(pos==-1)
+            {
+                if(i+1==CODE_BLOCK.size())
+                    throw invalid_expression(R"(expected ':')");
+                s+=CODE_BLOCK[++i];
+                pos=search_first_target(s,':');
+            }
             auto following=remove_blank(s.substr(pos+1));
             int nxt;
             if(!following.empty())
             {
+                for(int ii=1;ii+pos<s.size();ii++)
+                    CODE_BLOCK[i].pop_back();
                 if(i+1!=CODE_BLOCK.size()&&get_indentation(CODE_BLOCK[i+1])>x)
                     throw indentation_error("unexpected indent");
                 std::string a;
                 for(int i_=0;i_<=x;i_++)
                     a+=' ';
                 nxt=x+1;
-                tmp_code=a+following;
+                CODE_BLOCK.insert(CODE_BLOCK.begin()+i+1,a+following);
             }
             else
             {
@@ -1950,13 +2011,15 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
             int nxt;
             if(!following.empty())
             {
+                for(int ii=1;ii+pos<s.size();ii++)
+                    CODE_BLOCK[i].pop_back();
                 if(i+1!=CODE_BLOCK.size()&&get_indentation(CODE_BLOCK[i+1])>x)
                     throw indentation_error("unexpected indent");
                 std::string a;
                 for(int i_=0;i_<=x;i_++)
                     a+=' ';
                 nxt=x+1;
-                tmp_code=a+following;
+                CODE_BLOCK.insert(CODE_BLOCK.begin()+i+1,a+following);
             }
             else
             {
@@ -1976,19 +2039,26 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
         else if(s.size()>=x+5&&s.substr(x,5)=="while"&&(s.size()==x+5||s[x+5]==' '||s[x+5]=='\t'))
         {
             int pos=search_first_target(s,':');
-            if(pos==-1)
-                throw invalid_expression(R"(expected ':')");
+            while(pos==-1)
+            {
+                if(i+1==CODE_BLOCK.size())
+                    throw invalid_expression(R"(expected ':')");
+                s+=CODE_BLOCK[++i];
+                pos=search_first_target(s,':');
+            }
             auto following=remove_blank(s.substr(pos+1));
             int nxt;
             if(!following.empty())
             {
+                for(int ii=1;ii+pos<s.size();ii++)
+                    CODE_BLOCK[i].pop_back();
                 if(i+1!=CODE_BLOCK.size()&&get_indentation(CODE_BLOCK[i+1])>x)
                     throw indentation_error("unexpected indent");
                 std::string a;
                 for(int i_=0;i_<=x;i_++)
                     a+=' ';
                 nxt=x+1;
-                tmp_code=a+following;
+                CODE_BLOCK.insert(CODE_BLOCK.begin()+i+1,a+following);
             }
             else
             {
@@ -1999,7 +2069,6 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
                     throw indentation_error(R"(expected an indented block after 'while' statement)");
             }
             const bool check=cast_to_bool(interpreter_arithmetic(s.substr(x+6,pos-x-6)));
-            // std::cerr<<"while "<<i<<" "<<s<<" "<<check<<std::endl;
             if(!check)
                 running_code.back().pre_state=0,running_code.back().pre_pos=i;
             else
@@ -2017,13 +2086,15 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
             int nxt;
             if(!following.empty())
             {
+                for(int ii=1;ii+pos<s.size();ii++)
+                    CODE_BLOCK[i].pop_back();
                 if(i+1!=CODE_BLOCK.size()&&get_indentation(CODE_BLOCK[i+1])>x)
                     throw indentation_error("unexpected indent");
                 std::string a;
                 for(int i_=0;i_<=x;i_++)
                     a+=' ';
                 nxt=x+1;
-                tmp_code=a+following;
+                CODE_BLOCK.insert(CODE_BLOCK.begin()+i+1,a+following);
             }
             else
             {
@@ -2060,7 +2131,14 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
                 throw invalid_expression("('return' outside function)");
             if(s.size()<=x+7)
                 return 0ll;
-            return interpreter_value(interpreter_arithmetic(s.substr(x+6)));
+            std::any tmp_res=interpreter_arithmetic(s.substr(x+6),true);
+            while(CNT>0)
+            {
+                if(i+1==CODE_BLOCK.size())
+                    interpreter_arithmetic("");
+                tmp_res=interpreter_arithmetic(CODE_BLOCK[++i],true);
+            }
+            return interpreter_value(tmp_res);
         }
         else
         {
@@ -2084,7 +2162,18 @@ inline std::any interpreter_block(const std::vector<std::string> &CODE_BLOCK,con
                 running_code.back().pre_state=0;
             }
             else
-                interpreter_single(s.substr(x),state),running_code.back().pre_pos=i,running_code.back().pre_state=0;
+            {
+                std::any tmp_res=interpreter_arithmetic(s.substr(x),true);
+                while(CNT>0)
+                {
+                    if(i+1==CODE_BLOCK.size())
+                        interpreter_arithmetic("");
+                    tmp_res=interpreter_arithmetic(CODE_BLOCK[++i],true);
+                }
+                if(tmp_res.type()!=typeid(long long)&&tmp_res.type()!=typeid(wrap)&&!state)
+                    print_to_screen(tmp_res),std::cout<<std::endl;
+                running_code.back().pre_pos=i,running_code.back().pre_state=0;
+            }
         }
     }
     return 0ll;
@@ -2120,6 +2209,7 @@ inline void interpreter(const std::string &a)
         CODE_BLOCK.push_back(remove_back_blank(a));
     if(!INTERPRETER_STATE_)
     {
+        raw_expression_.clear();CNT=0;
         const auto tmp_CODE_BLOCK=CODE_BLOCK;
         CODE_BLOCK.clear();
         interpreter_block(tmp_CODE_BLOCK,0,&variable);
