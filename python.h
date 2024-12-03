@@ -129,11 +129,12 @@ class python_function
     friend bool operator==(const python_function&,const python_function&);
 public:
     std::vector<std::string> code,parameter;
-    std::unordered_map<std::string,std::any> dict,preserved_dict;
+    std::unordered_map<std::string,std::any> dict;
+    std::unordered_map<std::string,std::shared_ptr<std::any>> outer_dict;
     int id=0;
     python_function()=default;
     explicit python_function(const std::string&);
-    std::unordered_map<std::string, std::any> call(const std::vector<std::pair<std::string, std::any> > &);
+    std::unordered_map<std::string, std::shared_ptr<std::any>> call(const std::vector<std::pair<std::string, std::any> > &);
 };
 
 inline bool operator==(const python_function &a,const python_function &b){return a.id==b.id;}
@@ -161,31 +162,23 @@ struct running_information
 
 inline std::unordered_map<std::string,std::any> variable;
 
-inline std::unordered_map<std::string,std::any> *Dict=&variable;
+inline std::unordered_map<std::string,std::shared_ptr<std::any>> outer_dict,empty_variable;
 
-inline std::any *interpreter_variable(const std::string &var,std::unordered_map<std::string,std::any> *dict)
-{
-    if(!is_variable(var))
-        throw invalid_expression("Invalid expression!");
-    if(!dict->contains(var))
-        throw undefined_behavior("Undefined variable \'"+std::any_cast<std::string>(var)+'\'');
-    return &(*dict)[var];
-}
+inline std::unordered_map<std::string,std::shared_ptr<std::any>> *Dict=&empty_variable;
 
 inline std::any interpreter_value(const std::any &var)
 {
     if(var.type()!=typeid(std::string))
         return var;
-    try
-    {
-        if(!is_variable(std::any_cast<std::string>(var)))
-            throw invalid_expression("unknown object "+std::any_cast<std::string>(var));
-        return *interpreter_variable(std::any_cast<std::string>(var),Dict);
-    }
-    catch(...)
-    {
-        return *interpreter_variable(std::any_cast<std::string>(var),&variable);
-    }
+    if(!is_variable(std::any_cast<std::string>(var)))
+        throw invalid_expression("unknown object "+std::any_cast<std::string>(var));
+    if(Dict->contains(std::any_cast<std::string>(var)))
+        return *Dict->operator[](std::any_cast<std::string>(var));
+    if(outer_dict.contains(std::any_cast<std::string>(var)))
+        return *outer_dict[std::any_cast<std::string>(var)];
+    if(!variable.contains(std::any_cast<std::string>(var)))
+        throw undefined_behavior("Undefined variable \'"+std::any_cast<std::string>(var)+'\'');
+    return variable[std::any_cast<std::string>(var)];
 }
 
 inline Tuple operator+(const Tuple& a,const Tuple& b)
@@ -196,9 +189,9 @@ inline Tuple operator+(const Tuple& a,const Tuple& b)
     return c;
 }
 
-inline std::unordered_map<std::string, std::any> python_function::call(const std::vector<std::pair<std::string, std::any> > &par)
+inline std::unordered_map<std::string, std::shared_ptr<std::any>> python_function::call(const std::vector<std::pair<std::string, std::any> > &par)
 {
-    std::unordered_map<std::string,std::any> _dict=preserved_dict;
+    std::unordered_map<std::string,std::shared_ptr<std::any>> _dict;
     if(static_cast<int>(par.size())>parameter.size())
         throw invalid_expression("too many parameters");
     int cnt=0;
@@ -207,7 +200,7 @@ inline std::unordered_map<std::string, std::any> python_function::call(const std
         {
             if(cnt)
                 throw invalid_expression("positional argument follows keyword argument");
-            _dict[parameter[i]]=interpreter_value(par[i].second);
+            _dict[parameter[i]]=std::make_shared<std::any>(interpreter_value(par[i].second));
         }
         else
         {
@@ -216,14 +209,14 @@ inline std::unordered_map<std::string, std::any> python_function::call(const std
                 throw invalid_expression("multiple values for the same argument");
             if(!dict.contains(par[i].first))
                 throw invalid_expression("invalid keyword argument");
-            _dict[par[i].first]=interpreter_value(par[i].second);
+            _dict[par[i].first]=std::make_shared<std::any>(interpreter_value(par[i].second));
         }
     for(const auto & i :parameter)
         if(!_dict.contains(i))
         {
             if(dict[i].type()==typeid(std::string))
                 throw invalid_expression("missing argument");
-            _dict[i]=dict[i];
+            _dict[i]=std::make_shared<std::any>(dict[i]);
         }
     return _dict;
 }
@@ -998,8 +991,10 @@ inline std::any operator_assignment(const std::any &a,const std::any &bb)
         // Why we can assign to global variable without keyword "global"?
         if(variable.contains(std::any_cast<std::string>(a)))
             variable[std::any_cast<std::string>(a)]=b;
+        else if(outer_dict.contains(std::any_cast<std::string>(a)))
+            *outer_dict[std::any_cast<std::string>(a)]=b;
         else
-            (*Dict)[std::any_cast<std::string>(a)]=b;
+            (*Dict)[std::any_cast<std::string>(a)]=std::make_shared<std::any>(b);
     }
     else
     {
@@ -1016,7 +1011,7 @@ inline std::any operator_assignment(const std::any &a,const std::any &bb)
     return wrap(b);
 }
 
-inline std::any interpreter_block(std::vector<std::string>,int,std::unordered_map<std::string,std::any>*);
+inline std::any interpreter_block(std::vector<std::string>,int,std::unordered_map<std::string,std::shared_ptr<std::any>>*);
 
 inline int CNT=0;
 inline std::vector<std::any> raw_expression_;
@@ -1756,15 +1751,15 @@ inline std::any interpreter_arithmetic(const std::string &s,bool mode=false)
                     }
                     else
                     {
+                        func.outer_dict=outer_dict;
+                        for(const auto &[fi,se]:(*Dict))
+                            func.outer_dict[fi]=se;
                         auto tmp_dict_=func.call(upd);
                         auto tmp_dict=Dict;
+                        auto outer_dict_=outer_dict;
+                        outer_dict=func.outer_dict;
                         result[x]=interpreter_block(func.code,1,&tmp_dict_);
-                        if(result[x].type()==typeid(python_function))
-                        {
-                            auto tmp_func=std::any_cast<python_function>(result[x]);
-                            tmp_func.preserved_dict=tmp_dict_;
-                            result[x]=tmp_func;
-                        }
+                        outer_dict=outer_dict_;
                         Dict=tmp_dict;
                     }
                 }
@@ -1892,7 +1887,7 @@ inline python_function::python_function(const std::string& ss):id(COUNT_OF_FUNCT
     }
 }
 
-inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int state,std::unordered_map<std::string,std::any> *dict)
+inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int state,std::unordered_map<std::string,std::shared_ptr<std::any>> *dict)
 {
     Dict=dict;
     std::vector<running_information> running_code;
@@ -1915,7 +1910,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
             translator(s);
             if(CNT==0)
                 raw_expression_.clear();
-            (*dict)[name]=now_func;
+            (*dict)[name]=std::make_shared<std::any>(now_func);
             continue;
         }
         if(x>now||CNT>0)
@@ -2283,7 +2278,7 @@ inline void interpreter(std::string a)
         raw_expression_.clear();CNT=0;
         const auto tmp_CODE_BLOCK=CODE_BLOCK;
         CODE_BLOCK.clear();
-        interpreter_block(tmp_CODE_BLOCK,0,&variable);
+        interpreter_block(tmp_CODE_BLOCK,0,&empty_variable);
     }
 }
 
