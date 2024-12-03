@@ -129,7 +129,7 @@ class python_function
     friend bool operator==(const python_function&,const python_function&);
 public:
     std::vector<std::string> code,parameter;
-    std::map<std::string,std::any> dict;
+    std::unordered_map<std::string,std::any> dict,preserved_dict;
     int id=0;
     python_function()=default;
     explicit python_function(const std::string &);
@@ -150,6 +150,7 @@ struct running_information
      *5 successful 'while'
      *6 inside the definition of a function
      *7 failed 'while'
+     *8 broken 'while'
      */
     running_information(const int &a,const int &b,const int &c):indentation_count(a),pre_state(b),pre_pos(c){}
 };
@@ -197,7 +198,7 @@ inline Tuple operator+(const Tuple& a,const Tuple& b)
 
 inline std::unordered_map<std::string, std::any> python_function::call(const std::vector<std::pair<std::string, std::any> > &par)
 {
-    std::unordered_map<std::string,std::any> _dict;
+    std::unordered_map<std::string,std::any> _dict=preserved_dict;
     if(static_cast<int>(par.size())>parameter.size())
         throw invalid_expression("too many parameters");
     int cnt=0;
@@ -213,6 +214,8 @@ inline std::unordered_map<std::string, std::any> python_function::call(const std
             cnt=1;
             if(_dict.contains(par[i].first))
                 throw invalid_expression("multiple values for the same argument");
+            if(!dict.contains(par[i].first))
+                throw invalid_expression("invalid keyword argument");
             _dict[par[i].first]=interpreter_value(par[i].second);
         }
     for(const auto & i :parameter)
@@ -222,8 +225,6 @@ inline std::unordered_map<std::string, std::any> python_function::call(const std
                 throw invalid_expression("missing argument");
             _dict[i]=dict[i];
         }
-    if(_dict.size()>parameter.size())
-        throw invalid_expression("invalid keyword argument");
     return _dict;
 }
 
@@ -406,7 +407,7 @@ inline void print_to_screen(const std::any &aa,const bool op=false)
     if(a.type()==typeid(int))
         std::cout<<"operator"<<std::any_cast<int>(a);
     if(a.type()==typeid(python_function))
-        std::cout<<"python_function"<<std::any_cast<python_function>(a).id;
+        std::cout<<"function"<<std::any_cast<python_function>(a).id;
     if(a.type()==typeid(str))
     {
         auto tmp=std::string(std::any_cast<str>(a));
@@ -682,26 +683,26 @@ inline std::any interpreter_object(const std::string &s)
 namespace operator_
 {
     inline std::any operator_add(const std::any &aa,const std::any &bb)
-{
-    const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-    if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
-        throw undefined_behavior(R"(unsupported operand type(s) for +: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-    if(a.type()==typeid(str)||b.type()==typeid(str))
     {
-        if(a.type()!=typeid(str)||b.type()!=typeid(str))
+        const std::any a=interpreter_value(aa),b=interpreter_value(bb);
+        if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
             throw undefined_behavior(R"(unsupported operand type(s) for +: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<str>(a)+std::any_cast<str>(b);
+        if(a.type()==typeid(str)||b.type()==typeid(str))
+        {
+            if(a.type()!=typeid(str)||b.type()!=typeid(str))
+                throw undefined_behavior(R"(unsupported operand type(s) for +: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<str>(a)+std::any_cast<str>(b);
+        }
+        if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
+        {
+            if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
+                throw undefined_behavior(R"(unsupported operand type(s) for +: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
+            return std::any_cast<Tuple>(a)+std::any_cast<Tuple>(b);
+        }
+        if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
+            return cast_to_float(a)+cast_to_float(b);
+        return cast_to_int(a)+cast_to_int(b);
     }
-    if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
-    {
-        if(a.type()!=typeid(Tuple)||b.type()!=typeid(Tuple))
-            throw undefined_behavior(R"(unsupported operand type(s) for +: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
-        return std::any_cast<Tuple>(a)+std::any_cast<Tuple>(b);
-    }
-    if(a.type()==typeid(float2048<>)||b.type()==typeid(float2048<>))
-        return cast_to_float(a)+cast_to_float(b);
-    return cast_to_int(a)+cast_to_int(b);
-}
 
     inline std::any operator_plus(const std::any &aa)
     {
@@ -818,7 +819,6 @@ namespace operator_
     inline std::any operator_less(const std::any &aa,const std::any &bb)
     {
         const std::any a=interpreter_value(aa),b=interpreter_value(bb);
-        if(a.type()==typeid(std::string))
         if(a.type()==typeid(python_function)||b.type()==typeid(python_function)||a.type()==typeid(long long)||b.type()==typeid(long long))
             throw undefined_behavior(R"(unsupported operand type(s) for <: ')"+type_name(a)+R"(' and ')"+type_name(b)+R"(')");
         if(a.type()==typeid(Tuple)||b.type()==typeid(Tuple))
@@ -1725,8 +1725,7 @@ inline std::any interpreter_arithmetic(const std::string &s,bool mode=false)
                         else
                             upd=std::any_cast<std::vector<std::pair<std::string,std::any>>>(result[rs[x]]);
                     }
-                    auto func=std::any_cast<python_function>(val);
-                    if(func.id<0)
+                    if(auto func=std::any_cast<python_function>(val); func.id<0)
                     {
                         if(func.id>-6)
                         {
@@ -1760,6 +1759,12 @@ inline std::any interpreter_arithmetic(const std::string &s,bool mode=false)
                         auto tmp_dict_=func.call(upd);
                         auto tmp_dict=Dict;
                         result[x]=interpreter_block(func.code,1,&tmp_dict_);
+                        if(result[x].type()==typeid(python_function))
+                        {
+                            auto tmp_func=std::any_cast<python_function>(result[x]);
+                            tmp_func.preserved_dict=tmp_dict_;
+                            result[x]=tmp_func;
+                        }
                         Dict=tmp_dict;
                     }
                 }
@@ -1885,7 +1890,6 @@ inline python_function::python_function(const std::string &ss):id(COUNT_OF_FUNCT
             pos=i;
         }
     }
-
 }
 
 inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int state,std::unordered_map<std::string,std::any> *dict)
@@ -2011,9 +2015,10 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
                 if(nxt<=x)
                     throw indentation_error(R"(expected an indented block after 'elif' statement)");
             }
-            if(running_code.back().pre_state!=1&&running_code.back().pre_state!=2)
+            if(running_code.back().pre_state!=1&&running_code.back().pre_state!=2
+                &&running_code.back().pre_state!=3&&running_code.back().pre_state!=4)
                 throw indentation_error(R"(expected 'if' statement before a 'elif' statement)");
-            if(running_code.back().pre_state==1)
+            if(running_code.back().pre_state==1||running_code.back().pre_state==3)
                 running_code.back().pre_state=3,running_code.back().pre_pos=i,running_code.emplace_back(nxt,0,i);
             else
             {
@@ -2055,9 +2060,9 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
                     throw indentation_error(R"(expected an indented block after 'else' statement)");
             }
             if(running_code.back().pre_state!=1&&running_code.back().pre_state!=2&&running_code.back().pre_state!=3
-                &&running_code.back().pre_state!=4&&running_code.back().pre_state!=7)
+                &&running_code.back().pre_state!=4&&running_code.back().pre_state!=7&&running_code.back().pre_state!=8)
                 throw indentation_error(R"(expected 'if' or 'elif' or 'while' statement before a 'else' statement)");
-            if(running_code.back().pre_state==1||running_code.back().pre_state==3)
+            if(running_code.back().pre_state==1||running_code.back().pre_state==3||running_code.back().pre_state==8)
                 running_code.back().pre_state=0,running_code.back().pre_pos=i,running_code.emplace_back(nxt,0,i);
             else
                 running_code.back().pre_state=0,running_code.back().pre_pos=i,running_code.emplace_back(nxt,0,i),now=nxt;
@@ -2190,7 +2195,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
                 if(running_code.empty())
                     throw invalid_expression(R"('break' outside loop)");
                 now=running_code.back().indentation_count;
-                running_code.back().pre_state=0;
+                running_code.back().pre_state=8;
             }
             else
             {
