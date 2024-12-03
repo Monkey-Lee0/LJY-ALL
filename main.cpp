@@ -15,7 +15,7 @@ int main()
       // {
       //     int state=0;
       //     while(true)
-      //     {=
+      //     {
       //         try
       //         {
       //             if(!state)
@@ -83,7 +83,7 @@ int main()
 			interpreter(s);
 		interpreter("end");
 	}
-    catch(invalid_expression &a)
+    catch(indentation_error &a)
 	{
 
 	}
