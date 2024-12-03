@@ -149,6 +149,7 @@ struct running_information
      *4 failed 'elif'
      *5 successful 'while'
      *6 inside the definition of a function
+     *7 failed 'while'
      */
     running_information(const int &a,const int &b,const int &c):indentation_count(a),pre_state(b),pre_pos(c){}
 };
@@ -2053,8 +2054,9 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
                 if(nxt<=x)
                     throw indentation_error(R"(expected an indented block after 'else' statement)");
             }
-            if(running_code.back().pre_state!=1&&running_code.back().pre_state!=2&&running_code.back().pre_state!=3&&running_code.back().pre_state!=4)
-                throw indentation_error(R"(expected 'if' or 'elif' statement before a 'else' statement)");
+            if(running_code.back().pre_state!=1&&running_code.back().pre_state!=2&&running_code.back().pre_state!=3
+                &&running_code.back().pre_state!=4&&running_code.back().pre_state!=7)
+                throw indentation_error(R"(expected 'if' or 'elif' or 'while' statement before a 'else' statement)");
             if(running_code.back().pre_state==1||running_code.back().pre_state==3)
                 running_code.back().pre_state=0,running_code.back().pre_pos=i,running_code.emplace_back(nxt,0,i);
             else
@@ -2094,7 +2096,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
             }
             const bool check=cast_to_bool(interpreter_arithmetic(s.substr(x+6,pos-x-6)));
             if(!check)
-                running_code.back().pre_state=0,running_code.back().pre_pos=i;
+                running_code.back().pre_state=7,running_code.back().pre_pos=i;
             else
                 running_code.back().pre_state=5,running_code.back().pre_pos=i;
             running_code.emplace_back(nxt,0,i);
@@ -2209,7 +2211,7 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
 }
 
 inline std::vector<std::string> CODE_BLOCK;
-inline void interpreter(const std::string &a)
+inline void interpreter(std::string a)
 {
     static int INIT=false,state=0;
     static char now=0;
@@ -2237,17 +2239,9 @@ inline void interpreter(const std::string &a)
         INTERPRETER_STATE_=false;
     else
     {
-        if(!CODE_BLOCK.empty()&&!CODE_BLOCK.back().empty()&&CODE_BLOCK.back().back()=='\\')
-        {
-            if(now)
-                CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=remove_back_blank(a);
-            else
-                CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=" "+remove_back_blank(a);
-        }
-        else
-            CODE_BLOCK.push_back(remove_back_blank(a)),now=0,state=0;
-        for(auto t:a)
-            if(state)
+        const auto pre=now;
+        for(int i=0;i<static_cast<int>(a.size());i++)
+            if(auto t=a[i]; state)
                 state^=1;
             else if(now)
             {
@@ -2258,6 +2252,26 @@ inline void interpreter(const std::string &a)
             }
             else if(t=='\''||t=='\"')
                 now=t;
+            else if(t=='#')
+            {
+                while(a.size()!=i)
+                    a.pop_back();
+                break;
+            }
+        a=remove_back_blank(a);
+        if(!CODE_BLOCK.empty()&&!CODE_BLOCK.back().empty()&&CODE_BLOCK.back().back()=='\\')
+        {
+            if(pre)
+                CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=a;
+            else
+                CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=" "+a;
+        }
+        else
+        {
+            now=0,state=0;
+            if(!a.empty())
+                CODE_BLOCK.push_back(remove_back_blank(a));
+        }
     }
     if(!INTERPRETER_STATE_)
     {
