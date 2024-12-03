@@ -83,9 +83,9 @@ int main()
 			interpreter(s);
 		interpreter("end");
 	}
-    catch(indentation_error &a)
+    catch(invalid_expression &a)
 	{
-
+		while(true);
 	}
 
     return 0;

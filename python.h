@@ -1643,7 +1643,20 @@ inline std::any interpreter_arithmetic(const std::string &s,bool mode=false)
         else if(ls[x]>=0&&fa[ls[x]]==x)
             stack.push_back(ls[x]),fa[ls[x]]=-1;
         else if(rs[x]>=0&&fa[rs[x]]==x)
-            stack.push_back(rs[x]),fa[rs[x]]=-1;
+        {
+            if(int tmp=std::any_cast<int>(raw_expression[x]); tmp==31&&cast_to_bool(result[ls[x]]))
+            {
+                stack.pop_back();
+                result[x]=result[ls[x]];
+            }
+            else if(tmp==32&&!cast_to_bool(result[ls[x]]))
+            {
+                stack.pop_back();
+                result[x]=result[ls[x]];
+            }
+            else
+                stack.push_back(rs[x]),fa[rs[x]]=-1;
+        }
         else
         {
             stack.pop_back();
