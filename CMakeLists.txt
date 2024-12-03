@@ -3,7 +3,7 @@ project(Project)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Project main.cpp
+add_executable(code main.cpp
         ljyall.h
         intelligent.h
         Fraction.h
