@@ -2211,7 +2211,12 @@ inline void interpreter(const std::string &a)
     else if(INTERPRETER_STATE_&&a=="end")
         INTERPRETER_STATE_=false;
     else
-        CODE_BLOCK.push_back(remove_back_blank(a));
+    {
+        if(!CODE_BLOCK.empty()&&!CODE_BLOCK.back().empty()&&CODE_BLOCK.back().back()=='\\')
+            CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=" "+remove_back_blank(a);
+        else
+            CODE_BLOCK.push_back(remove_back_blank(a));
+    }
     if(!INTERPRETER_STATE_)
     {
         raw_expression_.clear();CNT=0;
