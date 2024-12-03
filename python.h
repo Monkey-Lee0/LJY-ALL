@@ -132,7 +132,7 @@ public:
     std::unordered_map<std::string,std::any> dict,preserved_dict;
     int id=0;
     python_function()=default;
-    explicit python_function(const std::string &);
+    explicit python_function(const std::string&);
     std::unordered_map<std::string, std::any> call(const std::vector<std::pair<std::string, std::any> > &);
 };
 
@@ -1839,7 +1839,7 @@ inline std::any interpreter_arithmetic(const std::string &s,bool mode=false)
     return result[rt];
 }
 
-inline python_function::python_function(const std::string &ss):id(COUNT_OF_FUNCTION++)
+inline python_function::python_function(const std::string& ss):id(COUNT_OF_FUNCTION++)
 {
     if(remove_blank(ss).empty())
         return ;
@@ -1881,7 +1881,7 @@ inline python_function::python_function(const std::string &ss):id(COUNT_OF_FUNCT
             else
             {
                 hav=1;
-                auto tmp=s.substr(pos+1,q-pos-1);
+                auto tmp=remove_blank(s.substr(pos+1,q-pos-1));
                 if(!is_variable(tmp)||q==i-1)
                     throw invalid_expression("invalid syntax");
                 const auto result=interpreter_arithmetic(s.substr(q+1,i-q-1));
