@@ -34,10 +34,10 @@ inline Tuple operator*(const Tuple& a,const int65536 &b)
 inline Tuple operator*(const int65536 &a,const Tuple &b){return b*a;}
 inline std::any Tuple::operator[](const int &a)const
 {
-    if(a<-static_cast<int>(val.size())||a>=val.size())
+    if(a<-static_cast<int>(val.size())||a>=static_cast<int>(val.size()))
         throw undefined_behavior("tuple index out of range");
-    if(a<-static_cast<int>(val.size()))
-        return val[a+val.size()];
+    if(a<0)
+        return val[a+static_cast<int>(val.size())];
     return val[a];
 }
 inline std::any Tuple::operator[](const int65536 &a)const{return val[static_cast<int>(a)];}
@@ -81,10 +81,10 @@ inline str operator*(const str& a,const int65536 &b)
 inline str operator*(const int65536 &a,const str &b){return b*a;}
 inline str str::operator[](const int &a)const
 {
-    if(a<-static_cast<int>(val.size())||a>=val.size())
-        throw undefined_behavior("tuple index out of range");
-    if(a<-static_cast<int>(val.size()))
-        return str(val[a+val.size()]);
+    if(a<-static_cast<int>(val.size())||a>=static_cast<int>(val.size()))
+        throw undefined_behavior("str index out of range");
+    if(a<0)
+        return str(val[a+static_cast<int>(val.size())]);
     return str(val[a]);
 }
 inline str str::operator[](const int65536 &a)const{return (*this)[static_cast<int>(a)];}
@@ -1025,6 +1025,17 @@ inline void translator(const std::string &s)
     std::string las,aux;
     int state=-1,shift=0;
     char pre=0;
+    if(!raw_expression_.empty()&&raw_expression_.back().type()==typeid(str))
+    {
+        state=4;
+        std::stringstream ss;
+        std::streambuf* buffer = std::cout.rdbuf(); //oldbuffer,STDOUT的缓冲区
+        std::cout.rdbuf(ss.rdbuf());
+        print_to_screen(raw_expression_.back());
+        las=std::string(ss.str());
+        std::cout.rdbuf(buffer);
+        raw_expression_.pop_back();
+    }
     for(int i=0;i<static_cast<int>(s.size());i++)
     {
         char t=s[i];
@@ -2200,7 +2211,8 @@ inline std::any interpreter_block(std::vector<std::string> CODE_BLOCK,const int 
 inline std::vector<std::string> CODE_BLOCK;
 inline void interpreter(const std::string &a)
 {
-    static int INIT=false;
+    static int INIT=false,state=0;
+    static char now=0;
     if(!INIT)
     {
         INIT=true;
@@ -2226,9 +2238,26 @@ inline void interpreter(const std::string &a)
     else
     {
         if(!CODE_BLOCK.empty()&&!CODE_BLOCK.back().empty()&&CODE_BLOCK.back().back()=='\\')
-            CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=" "+remove_back_blank(a);
+        {
+            if(now)
+                CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=remove_back_blank(a);
+            else
+                CODE_BLOCK.back().pop_back(),CODE_BLOCK.back()+=" "+remove_back_blank(a);
+        }
         else
-            CODE_BLOCK.push_back(remove_back_blank(a));
+            CODE_BLOCK.push_back(remove_back_blank(a)),now=0,state=0;
+        for(auto t:a)
+            if(state)
+                state^=1;
+            else if(now)
+            {
+                if(t==now)
+                    now=0;
+                else if(t=='\\')
+                    state=1;
+            }
+            else if(t=='\''||t=='\"')
+                now=t;
     }
     if(!INTERPRETER_STATE_)
     {
