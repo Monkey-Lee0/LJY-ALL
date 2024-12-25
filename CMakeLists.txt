@@ -13,4 +13,5 @@ add_executable(code main.cpp
         Polynomial.h
         float2048.h
         python.h
+        parser.h
 )

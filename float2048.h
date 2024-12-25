@@ -732,7 +732,9 @@ template<int siz> float2048<siz>::float2048(const std::string &a)
 			expo=-expo;
 		expo-=pos_e-pos_d-1;
 	}
-	else if(pos_d!=-1)
+	if(pos_e==0||pos_e+1==static_cast<int>(a.size()))
+		throw invalid_expression("Illegal symbol!");
+	if(pos_d!=-1)
 	{
 		val=int65536(a.substr(0,pos_d)+a.substr(pos_d+1,a.size()-pos_d-1));
 		expo=pos_d+1-static_cast<int>(a.size());
