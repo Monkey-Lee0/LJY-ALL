@@ -853,6 +853,10 @@ inline void print_to_screen(const OBJECT &a,const bool op=false)
                         std::cout<<'\n';
                     else if(tmp[i]=='t')
                         std::cout<<'\t';
+                    else if(tmp[i]=='\'')
+                        std::cout<<'\'';
+                    else if(tmp[i]=='\"')
+                        std::cout<<'\"';
                 }
                 else
                     std::cout<<tmp[i];
@@ -1893,10 +1897,100 @@ inline std::any executor_arithmetic(const int &rt)
                     {
                         if(i)
                             std::cout<<" ";
-                        print_to_screen(par[i]);
+                        print_to_screen(par[i],true);
                     }
                     std::cout<<std::endl;
                     RES[x]=0ll;
+                }
+                if(now_func.id==-7)
+                {
+                    if(par.size()==1)
+                        print_to_screen(par[0],true);
+                    if(par.size()>1)
+                        throw invalid_expression("input expected at most 1 argument");
+                    std::string s;
+                    getline(std::cin,s);
+                    RES[x]=str(s);
+                }
+                if(now_func.id==-8)
+                {
+                    if(par.empty())
+                        throw invalid_expression("min expected at least 1 argument");
+                    if(par.size()==1)
+                    {
+                        if(par[0].type()!=typeid(Tuple))
+                            throw invalid_expression("\'"+type_name(par[0])+R"(' object is not iterable)");
+                        const auto tmp=std::any_cast<Tuple>(par[0]);
+                        if(!tmp.SIZE())
+                            throw invalid_expression("min() iterable argument is empty");
+                        RES[x]=tmp[0];
+                        for(const auto& t:tmp.val)
+                            if(cast_to_bool(operator_::operator_greater(RES[x],t)))
+                                RES[x]=t;
+                    }
+                    else
+                    {
+                        RES[x]=par[0];
+                        for(int i=1;i<par.size();i++)
+                            if(cast_to_bool(operator_::operator_greater(RES[x],par[i])))
+                                RES[x]=par[i];
+                    }
+                }
+                if(now_func.id==-9)
+                {
+                    if(par.empty())
+                        throw invalid_expression("min expected at least 1 argument");
+                    if(par.size()==1)
+                    {
+                        if(par[0].type()!=typeid(Tuple))
+                            throw invalid_expression("\'"+type_name(par[0])+R"(' object is not iterable)");
+                        const auto tmp=std::any_cast<Tuple>(par[0]);
+                        if(!tmp.SIZE())
+                            throw invalid_expression("min() iterable argument is empty");
+                        RES[x]=tmp[0];
+                        for(const auto& t:tmp.val)
+                            if(cast_to_bool(operator_::operator_greater(t,RES[x])))
+                                RES[x]=t;
+                    }
+                    else
+                    {
+                        RES[x]=par[0];
+                        for(int i=1;i<par.size();i++)
+                            if(cast_to_bool(operator_::operator_greater(par[i],RES[x])))
+                                RES[x]=par[i];
+                    }
+                }
+                if(now_func.id==-10)
+                {
+                    if(par.empty())
+                        throw invalid_expression("abs() takes exactly one argument");
+                    if(par.size()==1)
+                    {
+                        if(par[0].type()!=typeid(int65536)&&par[0].type()!=typeid(bool)&&par[0].type()!=typeid(float2048<>))
+                            throw invalid_expression("bad operand type for abs()");
+                        if(cast_to_bool(operator_::operator_greater_eq(par[0],int65536(0))))
+                            RES[x]=operator_::operator_plus(par[0]);
+                        else
+                            RES[x]=operator_::operator_minus(par[0]);
+                    }
+                    else
+                        throw invalid_expression("abs() takes exactly one argument");
+                }
+                if(now_func.id==-11)
+                {
+                    if(par.empty())
+                        throw invalid_expression("sum() takes at least 1 argument");
+                    if(par.size()>=3)
+                        throw invalid_expression("sum() takes at least 3 arguments");
+                    RES[x]=int65536(0);
+                    if(par.size()==2)
+                        RES[x]=par[1];
+                    if(par[0].type()!=typeid(Tuple))
+                        throw invalid_expression("\'"+type_name(par[0])+R"(' object is not iterable)");
+                    if(RES[x].type()==typeid(str))
+                        throw invalid_expression("sum() can't sum strings");
+                    for(const auto tmp=std::any_cast<Tuple>(par[0]); const auto &t:tmp.val)
+                        RES[x]=operator_::operator_add(RES[x],t);
                 }
                 continue;
             }
@@ -2615,6 +2709,16 @@ inline int interpreter(const std::string &s)
         assign("tuple",make_obj(tmp));
         tmp.id=-6;
         assign("print",make_obj(tmp));
+        tmp.id=-7;
+        assign("input",make_obj(tmp));
+        tmp.id=-8;
+        assign("min",make_obj(tmp));
+        tmp.id=-9;
+        assign("max",make_obj(tmp));
+        tmp.id=-10;
+        assign("abs",make_obj(tmp));
+        tmp.id=-11;
+        assign("sum",make_obj(tmp));
     }
     try
     {
