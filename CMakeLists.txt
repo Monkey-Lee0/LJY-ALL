@@ -14,4 +14,7 @@ add_executable(code main.cpp
         float2048.h
         python.h
         parser.h
+        exception.h
+        type.h
+        debug.h
 )

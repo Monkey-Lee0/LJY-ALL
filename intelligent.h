@@ -21,26 +21,6 @@ public:
     [[nodiscard]] const char* what() const noexcept override{return name.c_str();}
 };
 
-class undefined_behavior final : public std::exception
-{
-private:
-    std::string name;
-public:
-    undefined_behavior()=default;
-    explicit undefined_behavior(std::string a):name(std::move(a)){}
-    [[nodiscard]] const char* what() const noexcept override{return name.c_str();}
-};
-
-class indentation_error final : public std::exception
-{
-private:
-    std::string name;
-public:
-    indentation_error()=default;
-    explicit indentation_error(std::string a):name(std::move(a)){}
-    [[nodiscard]] const char* what() const noexcept override{return name.c_str();}
-};
-
 inline bool is_blank(const char s){return s==' '||s=='\t';}
 inline bool is_number(const char s){return s>='0'&&s<='9';}
 inline bool is_lowercase(const char s){return s>='a'&&s<='z';}

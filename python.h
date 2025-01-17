@@ -28,39 +28,50 @@ inline void python()
                 getline(std::cin,s);
                 state=interpreter(s);
             }
-            catch(invalid_expression &a)
+            catch(SyntaxError &a)
             {
-                std::cout<<"invalid_expression : ";
+                std::cout<<"SyntaxError: ";
                 state=0;
                 puts(a.what());
             }
-            catch(std::runtime_error &a)
+            catch(NameError &a)
             {
-                std::cout<<"runtime_error : ";
+                std::cout<<"NameError: ";
                 state=0;
                 puts(a.what());
             }
-            catch(std::domain_error &a)
+            catch(IndentationError &a)
             {
-                std::cout<<"domain_error : ";
+                std::cout<<"IndentationError: ";
                 state=0;
                 puts(a.what());
             }
-            catch(undefined_behavior &a)
+            catch(IndexError &a)
             {
-                std::cout<<"undefined_behavior : ";
+                std::cout<<"IndexError: ";
+                state=0;
+                puts(a.what());
+            }
+            catch(ValueError &a)
+            {
+                std::cout<<"ValueError: ";
+                state=0;
+                puts(a.what());
+            }
+            catch(TypeError &a)
+            {
+                std::cout<<"TypeError: ";
+                state=0;
+                puts(a.what());
+            }
+            catch(ZeroDivisionError &a)
+            {
+                std::cout<<"ZeroDivisionError: ";
                 state=0;
                 puts(a.what());
             }
             catch(std::bad_any_cast &a)
             {
-                std::cout<<"bad_any_cast : ";
-                state=0;
-                puts(a.what());
-            }
-            catch(indentation_error &a)
-            {
-                std::cout<<"indentation_error : ";
                 state=0;
                 puts(a.what());
             }

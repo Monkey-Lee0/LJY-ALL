@@ -638,6 +638,10 @@ inline int65536::int65536(const std::string &s)
 		symbol=false,fi=1;
 	if(!s.empty()&&s[0]=='+')
 		fi=1;
+#ifdef INTELLIGENT_H
+	if(fi==s.size())
+		throw invalid_expression("invalid expression");
+#endif
 	num.reserve(s.size()/M_MAX_DIGIT+1);
 	while(l!=fi)
 	{

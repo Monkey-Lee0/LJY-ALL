@@ -2,8 +2,9 @@
 #define FLOAT2048_H
 
 #include"int2048.h"
+#include "intelligent.h"
 
-template<int siz=20> class float2048;
+template<int siz=6> class float2048;
 
 inline int LAS_=-1,EXPO_;
 inline int65536 VAL_;
@@ -99,7 +100,7 @@ template<int siz> std::ostream& operator<<(std::ostream &out,const float2048<siz
 			out<<'.';
 		for(int i=t-1;i>=1;--i)
 			out<<fixed_val.at(i);
-		putchar('e');
+		out<<'e';
 		if(expo0>=0)
 			out<<'+'<<expo0;
 		else
@@ -168,7 +169,7 @@ template<int siz> std::ostream& operator<<(std::ostream &out,const float2048<siz
 			out<<'.';
 		for(int i=t-1;i>=1;--i)
 			out<<fixed_val.at(i);
-		putchar('e');
+		out<<'e';
 		if(expo0>=0)
 			out<<'+'<<expo0;
 		else
@@ -497,15 +498,18 @@ template<int siz> float2048<siz> cos(const float2048<siz> &a)
 }
 template<int siz> float2048<siz> sin(const float2048<siz> &a)
 {
+	float2048<siz+2> tmp_a=float2048<siz+2>(a)%(float2048<siz+2>(2)*calc_pi<siz+2>());
 	float2048<siz+2> tmp=cos(float2048<siz+2>(a));
-	return float2048<siz>(sqrt(float2048<siz+2>(1)-tmp*tmp));
+	if(tmp_a<=calc_pi<siz+2>())
+		return float2048<siz>(sqrt(float2048<siz+2>(1)-tmp*tmp));
+	return -float2048<siz>(sqrt(float2048<siz+2>(1)-tmp*tmp));
 }
 template<int siz> float2048<siz> tan(const float2048<siz> &a)
 {
 	float2048<siz+2> tmp=cos(float2048<siz+2>(a));
-	if(!tmp.val)
+	if( !tmp.val)
 		throw std::domain_error("Beyond the domain of definition!");
-	return float2048<siz>(sqrt(float2048<siz+2>(1)-tmp*tmp)/tmp);
+	return float2048<siz>(sin<siz+2>(float2048<siz+2>(a))/tmp);
 }
 template<int siz> float2048<siz> atan_(const float2048<siz> &a)
 {
@@ -631,6 +635,7 @@ class float2048
 	template<int sz> friend float2048<sz> sin(const float2048<sz>&);
 	template<int sz> friend float2048<sz> tan(const float2048<sz>&);
 	template<int sz> friend float2048<sz> atan_(const float2048<sz>&);
+	template<int sz> friend float2048<sz> atan(const float2048<sz>&);
 	template<int sz> friend float2048<sz> sinh(const float2048<sz>&);
 	template<int sz> friend float2048<sz> cosh(const float2048<sz>&);
 	template<int sz> friend float2048<sz> tanh(const float2048<sz>&);
@@ -671,8 +676,7 @@ public:
 
 template<int siz> void float2048<siz>::simplify()
 {
-	const int d=Count_Digit_(val);
-	if(!d)
+	if(const int d=Count_Digit_(val); !d)
 		expo=1-siz*M_MAX_DIGIT;
 	else if(d>siz*9)
 		expo+=d-siz*9,val=Right_Move_(val,d-siz*9);
@@ -705,6 +709,8 @@ template<int siz> float2048<siz>::float2048(const std::string &a)
 			}
 			pos_e=i;
 		}
+	if(pos_e==0||pos_e+1==static_cast<int>(a.size()))
+		throw invalid_expression("Illegal symbol!");
 	if(pos_d!=-1&&pos_e!=-1)
 	{
 		if(pos_d>pos_e)
@@ -732,9 +738,7 @@ template<int siz> float2048<siz>::float2048(const std::string &a)
 			expo=-expo;
 		expo-=pos_e-pos_d-1;
 	}
-	if(pos_e==0||pos_e+1==static_cast<int>(a.size()))
-		throw invalid_expression("Illegal symbol!");
-	if(pos_d!=-1)
+	else if(pos_d!=-1)
 	{
 		val=int65536(a.substr(0,pos_d)+a.substr(pos_d+1,a.size()-pos_d-1));
 		expo=pos_d+1-static_cast<int>(a.size());
